@@ -1,5 +1,7 @@
+import 'package:aman_play/screens/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:aman_play/widgets/custom_button.dart';
+import 'package:get/get.dart';
 
 class StartPage extends StatelessWidget {
   const StartPage({super.key});
@@ -32,6 +34,7 @@ class StartPage extends StatelessWidget {
                 text: 'تسجيل دخول',
                 color: const Color(0xFF00BFA5),
                 onPressed: () {
+                  Get.to(() => const LoginPage());
                   print("Login Clicked");
                 },
               ),

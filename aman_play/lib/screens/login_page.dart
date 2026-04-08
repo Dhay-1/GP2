@@ -1,0 +1,95 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:aman_play/widgets/custom_button.dart';
+
+class LoginPage extends StatelessWidget {
+  const LoginPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF2FDFB),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: Column(
+              children: [
+                const SizedBox(height: 80),
+
+                // 1. AmanPlay Logo
+                Image.asset('assets/images/AmanPlayLOGO.png', width: 120),
+                const SizedBox(height: 40),
+
+                const Text(
+                  "تسجيل الدخول",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF00BFA5),
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                // 2. Email Field
+                TextField(
+                  decoration: InputDecoration(
+                    labelText: 'البريد الإلكتروني',
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // 3. Password Field
+                TextField(
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'كلمة المرور',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {},
+                    child: const Text(
+                      "نسيت كلمة المرور؟",
+                      style: TextStyle(color: Colors.grey),
+
+                      ),
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                // 4. Login Button
+                CustomButton(
+                  text: "دخول",
+                  color: const Color(0xFF00BFA5),
+                  onPressed: () {
+                    // Add Authenaction Code Here
+
+                    print("Login pressed");
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
