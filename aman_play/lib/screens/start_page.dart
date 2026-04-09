@@ -45,7 +45,7 @@ class StartPage extends StatelessWidget {
               // 3. Sign Up Button
               CustomButton(
                 text: 'إنشاء حساب',
-                color: const Color.fromARGB(255, 255, 246, 116),
+                color: const Color(0xFF00BFA5),
                 textColor: const Color.fromARGB(255, 255, 255, 255),
                 onPressed: () {
                   Get.to(() => const SignUpPage());
