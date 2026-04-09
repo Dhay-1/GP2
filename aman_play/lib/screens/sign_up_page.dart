@@ -1,10 +1,9 @@
-import 'package:aman_play/screens/sign_up_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:aman_play/widgets/custom_button.dart';
 
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+class SignUpPage extends StatelessWidget {
+  const SignUpPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,14 +17,14 @@ class LoginPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Column(
               children: [
-                const SizedBox(height: 80),
+                const SizedBox(height: 60),
 
-                // 1. AmanPlay Logo
-                Image.asset('assets/images/AmanPlayLOGO.png', width: 120),
-                const SizedBox(height: 40),
+               
+                Image.asset('assets/images/AmanPlayLOGO.png', width: 100),
+                const SizedBox(height: 30),
 
                 const Text(
-                  "تسجيل الدخول",
+                  "إنشاء حساب جديد",
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -33,7 +32,20 @@ class LoginPage extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 25),
+
+                // 1. Name Field
+                TextField(
+                  decoration: InputDecoration(
+                    labelText: 'الاسم الكامل',
+                    prefixIcon: const Icon(Icons.person_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 15),
 
                 // 2. Email Field
                 TextField(
@@ -46,7 +58,7 @@ class LoginPage extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 15),
 
                 // 3. Password Field
                 TextField(
@@ -60,49 +72,40 @@ class LoginPage extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 15),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    //1. On the right Forget Password
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        "نسيت كلمة المرور؟",
-                        style: TextStyle(color: Colors.grey),
-                      ),
+
+                // 4. Password confirmation
+                TextField(
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'كلمة المرور',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
                     ),
-
-                    //2. on the left Create Account
-                    TextButton(
-                      onPressed: () {
-                        Get.to(() => const SignUpPage());
-                      },
-
-                      child: const Text(
-                        "إنشاء حساب جديد",
-                        style: TextStyle(
-                          color: Color(0xFF00BFA5),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
+
 
                 const SizedBox(height: 30),
 
-                // 4. Login Button
+                // 5. SignUp Button
                 CustomButton(
-                  text: "دخول",
+                  text: "إنشاء حساب",
                   color: const Color(0xFF00BFA5),
                   onPressed: () {
-                    // Add Authenaction Code Here
+                    // Add SignUp Code Here
 
-                    print("Login pressed");
+                    print("Sign Up pressed");
                   },
                 ),
+
+
+                TextButton(
+                  onPressed: () => Get.back(), 
+                  child: const Text("لديك حساب بالفعل؟ سجل دخولك"),
+                  ),
               ],
             ),
           ),
