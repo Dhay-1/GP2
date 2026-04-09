@@ -1,5 +1,6 @@
-import 'package:aman_play/screens/sign_up_page.dart';
 import 'package:flutter/material.dart';
+import 'package:aman_play/screens/sign_up_page.dart';
+import 'package:aman_play/screens/forget_password_page.dart';
 import 'package:get/get.dart';
 import 'package:aman_play/widgets/custom_button.dart';
 
@@ -65,9 +66,12 @@ class LoginPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+
                     //1. On the right Forget Password
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Get.to(() => const ForgetPasswordPage());
+                      },
                       child: const Text(
                         "نسيت كلمة المرور؟",
                         style: TextStyle(color: Colors.grey),
