@@ -1,5 +1,6 @@
-import 'package:aman_play/screens/login_page.dart';
 import 'package:flutter/material.dart';
+import 'package:aman_play/screens/login_page.dart';
+import 'package:aman_play/screens/sign_up_page.dart';
 import 'package:aman_play/widgets/custom_button.dart';
 import 'package:get/get.dart';
 
@@ -47,6 +48,7 @@ class StartPage extends StatelessWidget {
                 color: const Color.fromARGB(255, 255, 246, 116),
                 textColor: const Color.fromARGB(255, 255, 255, 255),
                 onPressed: () {
+                  Get.to(() => const SignUpPage());
                   print("Sign Up Clicked");
                 },
               ),
