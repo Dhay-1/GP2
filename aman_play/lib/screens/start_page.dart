@@ -48,7 +48,7 @@ class StartPage extends StatelessWidget {
                 color: const Color(0xFF00BFA5),
                 textColor: const Color.fromARGB(255, 255, 255, 255),
                 onPressed: () {
-                  Get.to(() => const SignUpPage());
+                  Get.to(() =>  SignUpPage());
                   print("Sign Up Clicked");
                 },
               ),
