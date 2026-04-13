@@ -25,7 +25,7 @@ class VerificationPage extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               const Text(
-                "",
+                "لقد أرسلنا كود التحقق إلى بريدك. يرجى إدخاله في الأسفل.",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey),
               ),

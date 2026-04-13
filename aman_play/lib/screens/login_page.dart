@@ -16,6 +16,13 @@ class LoginPage extends StatelessWidget {
 
       child: Scaffold(
         backgroundColor: const Color(0xFFF2FDFB),
+
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: BackButton(color: Colors.black),
+        ),
+        
         body: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -83,7 +90,7 @@ class LoginPage extends StatelessWidget {
                     //2. on the left Create Account
                     TextButton(
                       onPressed: () {
-                        Get.to(() => const SignUpPage());
+                        Get.to(() =>  SignUpPage());
                       },
 
                       child: const Text(
