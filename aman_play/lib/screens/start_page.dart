@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:aman_play/screens/login_page.dart';
+import 'package:aman_play/screens/sign_up_page.dart';
 import 'package:aman_play/widgets/custom_button.dart';
+import 'package:get/get.dart';
 
 class StartPage extends StatelessWidget {
   const StartPage({super.key});
@@ -32,6 +35,7 @@ class StartPage extends StatelessWidget {
                 text: 'تسجيل دخول',
                 color: const Color(0xFF00BFA5),
                 onPressed: () {
+                  Get.to(() => const LoginPage());
                   print("Login Clicked");
                 },
               ),
@@ -41,9 +45,10 @@ class StartPage extends StatelessWidget {
               // 3. Sign Up Button
               CustomButton(
                 text: 'إنشاء حساب',
-                color: const Color.fromARGB(255, 255, 246, 116),
+                color: const Color(0xFF00BFA5),
                 textColor: const Color.fromARGB(255, 255, 255, 255),
                 onPressed: () {
+                  Get.to(() =>  SignUpPage());
                   print("Sign Up Clicked");
                 },
               ),
