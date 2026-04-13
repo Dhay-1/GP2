@@ -50,8 +50,9 @@ class VerificationPage extends StatelessWidget {
                 text: "تحقق", 
                 color: const Color(0xFF00BFA5), 
                 onPressed: (){
+                  //FireBase Code Here
                   //Auth Code
-
+                 
                 },
                 ),
                 TextButton(onPressed: (){}, 
