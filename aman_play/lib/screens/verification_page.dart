@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:aman_play/widgets/custom_button.dart';
+import 'package:aman_play/screens/permission_page.dart';
 
 class VerificationPage extends StatelessWidget {
   const VerificationPage({super.key});
@@ -50,7 +51,7 @@ class VerificationPage extends StatelessWidget {
                 text: "تحقق", 
                 color: const Color(0xFF00BFA5), 
                 onPressed: (){
-                  //Auth Code
+                Get.to(()=> const PermissionPage());
 
                 },
                 ),
