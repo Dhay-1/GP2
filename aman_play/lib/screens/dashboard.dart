@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'detection.dart';
 
 void main() {
   runApp(const dashboard());
@@ -333,7 +334,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildNavItem({required IconData icon, required int index}) {
     final bool isSelected = _selectedIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
+      onTap: () async {
+        if (index == 1) {
+          // Navigate to Detection page
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DetectionScreen()),
+          );
+          // Reset to dashboard tab when returning
+          setState(() => _selectedIndex = 2);
+        } else {
+          setState(() => _selectedIndex = index);
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(10),
