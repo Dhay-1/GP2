@@ -55,7 +55,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      const SizedBox(height: 160),
+                      const SizedBox(height: 180),
                       Obx(
                         () => Text(
                           userController.userName.value,
@@ -102,7 +102,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             Positioned(
-              top: MediaQuery.of(context).size.height * 0.18,
+              top: MediaQuery.of(context).size.height * 0.25 - 55,
               left: MediaQuery.of(context).size.width * 0.5 - 60,
               child: Container(
                 padding: const EdgeInsets.all(5),
