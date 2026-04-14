@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'detection.dart';
+import 'profile_page.dart';
 
 void main() {
   runApp(const dashboard());
@@ -335,7 +336,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final bool isSelected = _selectedIndex == index;
     return GestureDetector(
       onTap: () async {
-        if (index == 1) {
+        if (index == 0) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ProfilePage()),
+          );
+          setState(() => _selectedIndex = 2);
+        } else if (index == 1) {
           // Navigate to Detection page
           await Navigator.push(
             context,
