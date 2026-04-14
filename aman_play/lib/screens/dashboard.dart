@@ -143,7 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     Text(
-                      'اسم المستخدم ',
+                      'وجد الخميس',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 22,
