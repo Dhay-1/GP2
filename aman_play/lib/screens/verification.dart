@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:aman_play/widgets/custom_button.dart';
 
-class VerificationPage extends StatelessWidget {
-  const VerificationPage({super.key});
+class Verification extends StatelessWidget {
+  const Verification({super.key});
 
   @override
   Widget build(BuildContext context){
@@ -80,7 +80,7 @@ class VerificationPage extends StatelessWidget {
         ),
         onChanged: (value) {
           if (value.length == 1) {
-            FocusScope.of(context).nextFocus(); // ينقل المربع للي بعده
+            FocusScope.of(context).nextFocus(); // Shift to the next field
           } else if (value.isEmpty){
             FocusScope.of(context).previousFocus();
           }

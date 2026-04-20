@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:aman_play/screens/sign_up_page.dart';
 import 'package:aman_play/screens/forget_password_page.dart';
 import 'package:aman_play/widgets/custom_button.dart';
-import 'package:aman_play/screens/Verification_page.dart';
+import 'package:aman_play/screens/Verification.dart';
 import 'package:get/get.dart';
 
 
@@ -112,7 +112,7 @@ class LoginPage extends StatelessWidget {
                   color: const Color(0xFF00BFA5),
                   onPressed: () {
                     // Add Authenaction Code Here
-                    Get.to(() => const VerificationPage());
+                    //Get.to(() => const Verification());
                    
 
                     print("Login pressed");
