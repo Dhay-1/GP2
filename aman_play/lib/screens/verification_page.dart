@@ -141,6 +141,7 @@ class _VerificationPageState extends State<VerificationPage> {
                 Get.to(()=> const PermissionPage());
 
                 },
+              ),
               if (!isEmailVerified)
                 Column(
                   children: [
