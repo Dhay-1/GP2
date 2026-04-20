@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "648174635202",
+    "project_id": "amanplay-16f97",
+    "storage_bucket": "amanplay-16f97.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:648174635202:android:b12796e7fae0d747fad35b",
+        "android_client_info": {
+          "package_name": "com.AmanPlay.aman_play"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5taAtfNsyTWCsfwAjLC1x-CPAAI4AuU8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
