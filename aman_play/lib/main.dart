@@ -3,8 +3,7 @@ import 'package:get/get.dart';
 import 'screens/splash_screen.dart';
 
 void main(){
-  runApp(const AmanPlayApp());
-}
+  runApp(const AmanPlayApp());}
 
 class AmanPlayApp extends StatelessWidget {
   const AmanPlayApp({super.key});
