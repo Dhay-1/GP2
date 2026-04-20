@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:aman_play/widgets/custom_button.dart';
+import 'package:aman_play/screens/permission_page.dart';
 import 'package:aman_play/services/auth_service.dart';
 import 'dart:async';
 
@@ -127,6 +128,14 @@ class _VerificationPageState extends State<VerificationPage> {
                 style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 40),
+
+              CustomButton(
+                text: "تحقق", 
+                color: const Color(0xFF00BFA5), 
+                onPressed: (){
+                Get.to(()=> const PermissionPage());
+
+                },
               if (!isEmailVerified)
                 Column(
                   children: [
