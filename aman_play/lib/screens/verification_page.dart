@@ -13,7 +13,8 @@ class VerificationPage extends StatefulWidget {
 
 class _VerificationPageState extends State<VerificationPage> {
   final AuthService authService = Get.find<AuthService>();
-  late Timer _timer;
+  Timer? _timer;
+  Timer? _countdownTimer;
   int _resendCountdown = 0;
   bool isEmailVerified = false;
 
@@ -25,7 +26,8 @@ class _VerificationPageState extends State<VerificationPage> {
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -35,7 +37,8 @@ class _VerificationPageState extends State<VerificationPage> {
       await authService.reloadUser();
       
       if (authService.isEmailVerified) {
-        _timer.cancel();
+        _timer?.cancel();
+        if (!mounted) return;
         setState(() {
           isEmailVerified = true;
         });
@@ -48,10 +51,8 @@ class _VerificationPageState extends State<VerificationPage> {
           colorText: Colors.white,
         );
         
-        // Navigate to home or next screen after 2 seconds
-        Future.delayed(const Duration(seconds: 2), () {
-          Get.offAll(() => const VerificationPage()); // Replace with your home page
-        });
+        
+        if (!mounted) return;
       }
     });
   }
@@ -73,7 +74,11 @@ class _VerificationPageState extends State<VerificationPage> {
         _resendCountdown = 60;
       });
       
-      Timer.periodic(const Duration(seconds: 1), (timer) {
+      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
         setState(() {
           _resendCountdown--;
         });
@@ -149,7 +154,7 @@ class _VerificationPageState extends State<VerificationPage> {
                           : const Color(0xFF00BFA5),
                       onPressed: _resendCountdown == 0
                           ? _resendVerificationEmail
-                          : () {}, // Empty function when disabled
+                          : () {}, 
                     ),
                     const SizedBox(height: 20),
                     TextButton(
@@ -159,9 +164,9 @@ class _VerificationPageState extends State<VerificationPage> {
                           'يمكنك الاستمرار بدون تحقق البريد',
                           snackPosition: SnackPosition.BOTTOM,
                         );
-                        Future.delayed(const Duration(seconds: 1), () {
-                          Get.offAll(() => const VerificationPage()); // Replace with home page
-                        });
+                        if (mounted) {
+                          Get.back();
+                        }
                       },
                       child: const Text(
                         "المتابعة بدون تحقق (للاختبار فقط)",
@@ -180,7 +185,9 @@ class _VerificationPageState extends State<VerificationPage> {
                       text: "المتابعة",
                       color: const Color(0xFF00BFA5),
                       onPressed: () {
-                        Get.offAll(() => const VerificationPage()); // Replace with home page
+                        if (mounted) {
+                          Get.back();
+                        }
                       },
                     ),
                   ],
