@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'screens/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'services/auth_service.dart';
+import 'services/firestore_service.dart';
 
 void main() async {
   // This line is required to talk to the native Android code
@@ -14,6 +15,9 @@ void main() async {
   
   // Initialize Auth Service
   Get.put(AuthService());
+  
+  // Initialize Firestore Service
+  Get.put(FirestoreService());
   
   runApp(const AmanPlayApp());
 }
