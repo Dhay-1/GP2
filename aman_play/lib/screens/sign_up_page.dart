@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:aman_play/widgets/custom_button.dart';
 import 'package:aman_play/services/auth_service.dart';
+import 'package:aman_play/services/firestore_service.dart';
 import 'Verification_page.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -19,6 +20,7 @@ class _SignUpPageState extends State<SignUpPage> {
       TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final AuthService authService = Get.find<AuthService>();
+  final FirestoreService firestoreService = Get.find<FirestoreService>();
 
   @override
   void dispose() {
@@ -38,7 +40,7 @@ class _SignUpPageState extends State<SignUpPage> {
     final email = emailController.text.trim();
     final password = passwordController.text;
 
-    // Call Firebase Auth sign up
+    // Call Firebase Authintication sign up
     await authService.signUp(
       email: email,
       password: password,
@@ -47,6 +49,17 @@ class _SignUpPageState extends State<SignUpPage> {
 
     // Check for errors
     if (authService.errorMessage.value.isEmpty) {
+      // Get the current user UID from AuthService
+      final currentUser = authService.currentUser.value;
+      if (currentUser != null) {
+        // Create user info in Firestore
+        await firestoreService.createUserDocument(
+          uid: currentUser.uid,
+          email: email,
+          name: fullName,
+        );
+      }
+      
       // Success - navigate to verification page
       Get.offAll(() => const VerificationPage());
     } else {

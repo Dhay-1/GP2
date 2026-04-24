@@ -138,9 +138,10 @@ class _VerificationPageState extends State<VerificationPage> {
                 text: "تحقق", 
                 color: const Color(0xFF00BFA5), 
                 onPressed: (){
-                Get.to(()=> const PermissionPage());
-
+                  Get.to(()=> const PermissionPage());
                 },
+              ),
+
               if (!isEmailVerified)
                 Column(
                   children: [
@@ -165,25 +166,9 @@ class _VerificationPageState extends State<VerificationPage> {
                           ? _resendVerificationEmail
                           : () {}, 
                     ),
-                    const SizedBox(height: 20),
-                    TextButton(
-                      onPressed: () {
-                        Get.snackbar(
-                          'تنبيه',
-                          'يمكنك الاستمرار بدون تحقق البريد',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                        if (mounted) {
-                          Get.back();
-                        }
-                      },
-                      child: const Text(
-                        "المتابعة بدون تحقق (للاختبار فقط)",
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    ),
                   ],
                 ),
+
               if (isEmailVerified)
                 Column(
                   children: [
