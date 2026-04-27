@@ -1,3 +1,5 @@
+import static_ffmpeg
+static_ffmpeg.add_paths()
 # This includes the model implementation, audio and text preprocessing only. The API endpoints are defined at the end of the file.
 import torch
 import torch.nn as nn
@@ -17,7 +19,6 @@ from arabert.preprocess import ArabertPreprocessor
 
 app = FastAPI()
 device = torch.device("cpu") 
-model = "aubmindlab/bert-base-arabertv2"
 # Load Model
 class SequentialHybridModel(nn.Module):
     def __init__(self, model_name, dropout_prob=0.5):
@@ -75,19 +76,21 @@ class SequentialHybridModel(nn.Module):
         return prediction
 
 # Load model weights
-model = SequentialHybridModel(model_name=model)
+model = SequentialHybridModel(model_name="aubmindlab/bert-base-arabertv2")
 model.load_state_dict(torch.load("AmanPlay_Model_Weights.pt", map_location=device))
 model.eval()
 
 # Processing Tools
-prep_tool = ArabertPreprocessor(model_name=model)
+prep_tool = ArabertPreprocessor(model_name="aubmindlab/bert-base-arabertv2")
 asr_pipe = pipeline(
     "automatic-speech-recognition",
     model="openai/whisper-medium",
     chunk_length_s=30, 
     stride_length_s=5, 
+    model_kwargs={"local_files_only": True}  # Remove this line before your first run.
 )
-tokenizer = AutoTokenizer.from_pretrained("aubmindlab/bert-base-arabertv2")
+tokenizer = AutoTokenizer.from_pretrained("aubmindlab/bert-base-arabertv2", 
+                                          local_files_only=True) # Remove this line before your first run.
 
 # ==========================
 # 2. PREPROCESSING FUNCTIONS
@@ -168,5 +171,11 @@ async def predict_text(text: str):
     return {
         "is_bullying": confidence > 0.5,
         "confidence": confidence,
+        "transcription": cleaned_text,
         "source": "text"
     }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+    
