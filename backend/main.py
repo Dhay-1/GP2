@@ -87,8 +87,10 @@ asr_pipe = pipeline(
     model="openai/whisper-medium",
     chunk_length_s=30, 
     stride_length_s=5, 
+    model_kwargs={"local_files_only": True}  # Remove this line before your first run.
 )
-tokenizer = AutoTokenizer.from_pretrained("aubmindlab/bert-base-arabertv2")
+tokenizer = AutoTokenizer.from_pretrained("aubmindlab/bert-base-arabertv2", 
+                                          local_files_only=True) # Remove this line before your first run.
 
 # ==========================
 # 2. PREPROCESSING FUNCTIONS
