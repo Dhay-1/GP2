@@ -106,14 +106,7 @@ class _Detection2ScreenState extends State<Detection2Screen> {
 
     try {
       // TODO: Replace with your actual API call
-      // Example:
-      // final response = await http.post(
-      //   Uri.parse('https://your-api.com/analyze'),
-      //   headers: {'Content-Type': 'application/json'},
-      //   body: jsonEncode({'text': text}),
-      // );
-      // final result = jsonDecode(response.body);
-      // setState(() => _analysisResult = result['label']);
+   
 
       // ── Simulated response (remove when API is ready) ──
       await Future.delayed(const Duration(seconds: 2));
