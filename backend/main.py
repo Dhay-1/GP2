@@ -9,6 +9,7 @@ import emoji
 import re
 import librosa
 import io
+import tempfile
 from fastapi import FastAPI, File, UploadFile
 from transformers import AutoTokenizer, AutoModel, pipeline
 from arabert.preprocess import ArabertPreprocessor
@@ -75,11 +76,6 @@ class SequentialHybridModel(nn.Module):
         prediction = self.classification_layer(combined)
         return prediction
 
-# Load model weights
-model = SequentialHybridModel(model_name="aubmindlab/bert-base-arabertv2")
-model.load_state_dict(torch.load("AmanPlay_Model_Weights.pt", map_location=device))
-model.eval()
-
 # Processing Tools
 prep_tool = ArabertPreprocessor(model_name="aubmindlab/bert-base-arabertv2")
 asr_pipe = pipeline(
@@ -87,10 +83,14 @@ asr_pipe = pipeline(
     model="openai/whisper-medium",
     chunk_length_s=30, 
     stride_length_s=5, 
-    model_kwargs={"local_files_only": True}  # Remove this line before your first run.
+    resume_download=True  
 )
-tokenizer = AutoTokenizer.from_pretrained("aubmindlab/bert-base-arabertv2", 
-                                          local_files_only=True) # Remove this line before your first run.
+tokenizer = AutoTokenizer.from_pretrained("aubmindlab/bert-base-arabertv2", resume_download=True) 
+
+# Load model weights
+model = SequentialHybridModel(model_name="aubmindlab/bert-base-arabertv2")
+model.load_state_dict(torch.load("AmanPlay_Model_Weights.pt", map_location=device))
+model.eval()
 
 # ==========================
 # 2. PREPROCESSING FUNCTIONS
@@ -98,14 +98,22 @@ tokenizer = AutoTokenizer.from_pretrained("aubmindlab/bert-base-arabertv2",
 
 # 1} AUDIO PREPROCESSING
 def transcribe_audio(audio_file):
-    # Load audio and convert bytes 
-    audio, sr = librosa.load(io.BytesIO(audio_file), sr=16000)
-    # Normalization
-    audio = audio / (np.max(np.abs(audio)) + 1e-9)
-
-    # Transcription
-    result = asr_pipe(audio, generate_kwargs={"language": "arabic", "task": "transcribe"})
-    return result["text"]
+    temp_audio_path = None
+    # Create a temporary file to store the audio
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+        temp_audio.write(audio_file)
+        temp_audio_path = temp_audio.name
+    try:
+        # Load audio and convert bytes 
+        audio, sr = librosa.load(io.BytesIO(audio_file), sr=16000)
+        # Normalization
+        audio = audio / (np.max(np.abs(audio)) + 1e-9)
+        # Transcription
+        result = asr_pipe(audio, generate_kwargs={"language": "arabic", "task": "transcribe"})
+        return result["text"]
+    finally:
+        if  os.path.exists(temp_audio_path):
+            os.remove(temp_audio_path)
 
 #2} TEXT PREPROCESSING
 # Emoji Conversion, Long spsces, tabs, new line Removal 
@@ -142,7 +150,7 @@ async def predict_audio(file: UploadFile = File(...)):
     
     # Step B: Clean that text 
     cleaned_text = full_clean(text_from_voice)
-    inputs = tokenizer(cleaned_text, return_tensors="pt", padding=True, truncation=True, max_length=128)
+    inputs = tokenizer(cleaned_text, return_tensors="pt", padding='max_length', truncation=True, max_length=128)
 
     # Step C: Feed to the Model
     with torch.no_grad():
@@ -161,7 +169,7 @@ async def predict_audio(file: UploadFile = File(...)):
 async def predict_text(text: str):
 
     cleaned_text = full_clean(text)
-    inputs = tokenizer(cleaned_text, return_tensors="pt", padding=True, truncation=True, max_length=128)
+    inputs = tokenizer(cleaned_text, return_tensors="pt", padding='max_length', truncation=True, max_length=128)
     
     with torch.no_grad():
         outputs = model(inputs['input_ids'], inputs['attention_mask'])
