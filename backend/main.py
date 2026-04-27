@@ -7,9 +7,8 @@ import torch.nn.functional as F
 import numpy as np
 import emoji
 import re
-import librosa
 import io
-import tempfile
+from pydub import AudioSegment
 from fastapi import FastAPI, File, UploadFile
 from transformers import AutoTokenizer, AutoModel, pipeline
 from arabert.preprocess import ArabertPreprocessor
@@ -77,13 +76,14 @@ class SequentialHybridModel(nn.Module):
         return prediction
 
 # Processing Tools
+AudioSegment.converter = "C:/Users/Huawei/AppData/Roaming/Python/Python311/site-packages/static_ffmpeg/bin/win32/ffmpeg.exe"
 prep_tool = ArabertPreprocessor(model_name="aubmindlab/bert-base-arabertv2")
 asr_pipe = pipeline(
     "automatic-speech-recognition",
     model="openai/whisper-medium",
     chunk_length_s=30, 
-    stride_length_s=5, 
-    resume_download=True  
+    stride_length_s=5
+    #resume_download=True  
 )
 tokenizer = AutoTokenizer.from_pretrained("aubmindlab/bert-base-arabertv2", resume_download=True) 
 
@@ -98,22 +98,25 @@ model.eval()
 
 # 1} AUDIO PREPROCESSING
 def transcribe_audio(audio_file):
-    temp_audio_path = None
-    # Create a temporary file to store the audio
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
-        temp_audio.write(audio_file)
-        temp_audio_path = temp_audio.name
     try:
+        # To read the bytes 
+        audio_file = io.BytesIO(audio_file)
+        audio_segment = AudioSegment.from_file(audio_file)
+        print(f"--- DEBUG: Audio loaded. Duration: {len(audio_segment)}ms ---")
         # Load audio and convert bytes 
-        audio, sr = librosa.load(io.BytesIO(audio_file), sr=16000)
+        audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)
+        # Convert to a format Librosa/Whisper can read (float32 array)
+        samples = np.array(audio_segment.get_array_of_samples()).astype(np.float32)
         # Normalization
-        audio = audio / (np.max(np.abs(audio)) + 1e-9)
+        audio = samples / (np.max(np.abs(samples)) + 1e-9)
         # Transcription
+        print("--- DEBUG: Sending to Whisper ---")
         result = asr_pipe(audio, generate_kwargs={"language": "arabic", "task": "transcribe"})
         return result["text"]
-    finally:
-        if  os.path.exists(temp_audio_path):
-            os.remove(temp_audio_path)
+    except Exception as e:
+        print("!!! CRITICAL AUDIO ERROR !!!")
+        print(f"Audio Error: {e}")
+        return "Error processing audio"
 
 #2} TEXT PREPROCESSING
 # Emoji Conversion, Long spsces, tabs, new line Removal 
