@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'detection.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() {
   runApp(const dashboard());
@@ -32,14 +34,72 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 2; // Dashboard tab selected by default
+  // weekly data for audio statistics
+  List<double> audioData = [0, 0, 0, 0, 0, 0, 0];
+  // weekly data for writing statistics
+  List<double> writingData = [0, 0, 0, 0, 0, 0, 0];
 
-  // Sample weekly data for audio statistics
-  final List<double> audioData = [14, 25, 22, 16, 15, 17, 20];
+bool _isLoading = true;
+String _userName = "المستخدم";
 
-  // Sample weekly data for writing statistics
-  final List<double> writingData = [12, 20, 18, 8, 13, 15, 17];
+@override
+void initState() {
+  super.initState();
+  _fetchData();
+  _fetchUserName();
+}
 
-  final List<String> weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+List<String> _getLast7DayLabels() {
+  final now = DateTime.now();
+  return List.generate(7, (i) {
+    final day = now.subtract(Duration(days: 6 - i));
+    const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return names[day.weekday % 7];
+  });
+}
+
+Future<void> _fetchData() async {
+  final snapshot = await FirebaseFirestore.instance
+      .collection('detections')
+      .where('is_bullying', isEqualTo: true)
+      .get();
+
+  final now = DateTime.now();
+  List<double> audio = [0, 0, 0, 0, 0, 0, 0];
+  List<double> text = [0, 0, 0, 0, 0, 0, 0];
+
+  for (var doc in snapshot.docs) {
+    final data = doc.data();
+    final timestamp = (data['createdAt'] as Timestamp).toDate();
+    final diff = now.difference(timestamp).inDays;
+    
+    if (diff < 7) {
+      final index = 6 - diff; // most recent = index 6
+      if (data['source'] == 'audio') {
+        audio[index]++;
+      } else if (data['source'] == 'text') {
+        text[index]++;
+      }
+    }
+  }
+
+if (mounted) {
+    setState(() {
+      audioData = audio;
+      writingData = text;
+      _isLoading = false;
+    });
+  }
+}
+
+Future<void> _fetchUserName() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null && mounted) {
+    setState(() {
+      _userName = user.displayName ?? user.email ?? "المستخدم";
+    });
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -133,23 +193,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
-                      'اهلاً،',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    Text(
-                      'اسم المستخدم ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  children: [
+                    const Text('اهلاً،', style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
+                    )),
+                    Text(_userName, style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    )),
                   ],
                 ),
                 // Avatar
@@ -248,7 +302,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 return _buildBar(
                   value: data[index],
                   maxValue: maxVal,
-                  label: weekDays[index],
+                  label: _getLast7DayLabels()[index],
                 );
               }),
             ),
@@ -264,7 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String label,
   }) {
     const double maxBarHeight = 80.0;
-    final double barHeight = (value / maxValue) * maxBarHeight;
+    final double barHeight = maxValue == 0 ? 0 : (value / maxValue) * maxBarHeight;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,

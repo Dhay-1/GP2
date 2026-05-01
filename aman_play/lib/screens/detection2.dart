@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:record/record.dart'; 
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
-import 'dart:io';
 
 
 class Detection2Screen extends StatefulWidget {
