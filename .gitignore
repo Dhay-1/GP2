@@ -1,2 +1,4 @@
-# Large model weights file
+# Large model files
+*.pt
+*.pth
 backend/AmanPlaay_Model_Weights.pt
