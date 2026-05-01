@@ -1,4 +1,12 @@
+import 'package:aman_play/services/firestore_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:record/record.dart'; 
+import 'package:path_provider/path_provider.dart';
+import 'dart:convert';
+import 'dart:io';
+
 
 class Detection2Screen extends StatefulWidget {
   const Detection2Screen({super.key});
@@ -10,17 +18,164 @@ class Detection2Screen extends StatefulWidget {
 class _Detection2ScreenState extends State<Detection2Screen> {
   bool _isRecording = false;
   final TextEditingController _textController = TextEditingController();
+  AudioRecorder? _audioRecorder;
+  
+  
+  final String _baseUrl = "http://192.168.0.174:8000"; 
+  final String _userEmail =  FirebaseAuth.instance.currentUser?.email ?? ""; // Get users email from the Firebase Auth
 
-  void _toggleRecording() {
-    setState(() => _isRecording = !_isRecording);
-    // TODO: Hook up actual mic recording logic here
+  // --- AUDIO LOGIC ---
+ void _toggleRecording() async {
+  if (_isRecording) {
+    // STOP
+    final path = await _audioRecorder?.stop();
+    await _audioRecorder?.dispose();
+    _audioRecorder = null;  // clean up
+    setState(() => _isRecording = false);
+
+    if (path != null) {
+      _showLoadingDialog("جاري تحليل الصوت...");
+      await _sendAudioToAI(path);
+    }
+  } else {
+    // create a fresh recorder
+    _audioRecorder = AudioRecorder();
+    
+    
+    final hasPermission = await _audioRecorder!.hasPermission();
+    print(">>> Microphone permission: $hasPermission");  
+    
+    if (hasPermission) {
+      final directory = await getTemporaryDirectory();
+      final path = '${directory.path}/recording.wav';
+      print(">>> Saving to: $path");  
+      
+      await _audioRecorder!.start(
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+        path: path,
+      );
+      setState(() => _isRecording = true);
+    } else {
+      print(">>> NO MICROPHONE PERMISSION!");
+    }
+  }
+}
+Future<void> _sendAudioToAI(String filePath) async {
+  var request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/predict/audio'));
+  request.files.add(await http.MultipartFile.fromPath('file', filePath));
+  request.fields['user_email'] = _userEmail;
+
+  var response = await request.send();
+  
+  if (response.statusCode == 200) {
+    // ✅ Read stream only once
+    final responseBody = await response.stream.bytesToString();
+    var data = jsonDecode(responseBody);
+
+    // Save to Firestore only if bullying detected
+    if (data['is_bullying'] == true) {
+      await FirestoreService.instance.saveDetectionResult(
+        userEmail: _userEmail,
+        isBullying: data['is_bullying'],
+        confidence: data['confidence'],
+        transcription: data['transcription'],
+        source: "audio",
+      );
+    }
+
+    if (mounted) Navigator.pop(context); // close loading dialog
+
+    _showResultDialog(
+      data['is_bullying'] == true ? "Bullying" : "Not Bullying",
+      data['transcription'],
+    );
+  } else {
+    if (mounted) Navigator.pop(context);
+    _showResultDialog("خطأ", "فشل الاتصال بالخادم");
+  }
+}
+  // --- TEXT LOGIC ---
+ Future<void> _analyzeText() async {
+  String text = _textController.text.trim();
+  if (text.isEmpty) return;
+
+  _showLoadingDialog("جاري تحليل النص...");
+
+ Navigator.pop(context); 
+final response = await http.post(
+  Uri.parse('$_baseUrl/predict/text'),
+  headers: {
+    "Content-Type": "application/json; charset=UTF-8",
+    "Accept": "application/json",
+  },
+  body: jsonEncode({'text': text, 'user_email': _userEmail}),
+);
+if (response.statusCode == 200) {
+  var data = jsonDecode(response.body);
+  _showResultDialog(
+    data['is_bullying'] ? "Bullying" : "Not Bullying",
+    data['transcription'],
+  );
+/// if bullying is detected will save the result to fire base 
+ if (data['is_bullying'] == true) {
+    await FirestoreService.instance.saveDetectionResult(
+      userEmail: _userEmail,
+      isBullying: data['is_bullying'],
+      confidence: data['confidence'],
+      transcription: data['transcription'],
+      source: "text",
+    );
+ if (mounted) Navigator.pop(context);
+
+  _showResultDialog(
+    data['is_bullying'] == true ? "Bullying" : "Not Bullying",
+    data['transcription'],
+  );
+}
+ } 
+ }
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Color(0xFF00A896)),
+            const SizedBox(height: 16),
+            Text(message, style: const TextStyle(fontFamily: 'Cairo')),
+          ],
+        ),
+      ),
+    );
   }
 
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
+  void _showResultDialog(String label, String content) {
+    bool isBullying = label == "Bullying";
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isBullying ? "تنبيه: تم رصد تنمر" : "النص سليم", 
+            textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Cairo')),
+        content: Text(content, textAlign: TextAlign.center),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("موافق"))
+        ],
+      ),
+    );
   }
+
+ @override
+void dispose() {
+  _textController.dispose();
+  _audioRecorder?.dispose();  
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {
@@ -320,6 +475,7 @@ class _Detection2ScreenState extends State<Detection2Screen> {
             child: ElevatedButton(
               onPressed: () {
                 // TODO: Hook up text analysis logic here
+                _analyzeText();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00A896),

@@ -134,13 +134,13 @@ class _VerificationPageState extends State<VerificationPage> {
               ),
               const SizedBox(height: 40),
 
-              CustomButton(
+             /* CustomButton(
                 text: "تحقق", 
                 color: const Color(0xFF00BFA5), 
                 onPressed: (){
                   Get.to(()=> const PermissionPage());
                 },
-              ),
+              ),*/
 
               if (!isEmailVerified)
                 Column(
@@ -178,11 +178,9 @@ class _VerificationPageState extends State<VerificationPage> {
                     CustomButton(
                       text: "المتابعة",
                       color: const Color(0xFF00BFA5),
-                      onPressed: () {
-                        if (mounted) {
-                          Get.back();
-                        }
-                      },
+                    onPressed: (){
+                  Get.to(()=> const PermissionPage());
+                },
                     ),
                   ],
                 ),

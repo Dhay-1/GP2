@@ -17,9 +17,8 @@ class FirestoreService extends GetxController {
 
   // Collection references
   CollectionReference get usersCollection => _firestore.collection('users');
-  CollectionReference get videosCollection => _firestore.collection('videos');
-  CollectionReference get reportsCollection => _firestore.collection('reports');
 
+CollectionReference get detectionsCollection => _firestore.collection('detections');
   // Create a new user document
   Future<void> createUserDocument({
     required String uid,
@@ -64,45 +63,26 @@ class FirestoreService extends GetxController {
     }
   }
 
-  // Add a video report
-  Future<void> addVideoReport({
-    required String userId,
-    required String videoUrl,
-    required String description,
-    required String category,
-  }) async {
-    try {
-      await reportsCollection.add({
-        'userId': userId,
-        'videoUrl': videoUrl,
-        'description': description,
-        'category': category,
-        'status': 'pending',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      print("Video report added");
-    } catch (e) {
-      print("Error adding video report: $e");
-    }
+// Save bullying detection result
+Future<void> saveDetectionResult({
+  required String userEmail,
+  required bool isBullying,
+  required double confidence,
+  required String transcription,
+  required String source,
+}) async {
+  try {
+    await detectionsCollection.add({
+      'user_email': userEmail,
+      'is_bullying': isBullying,
+      'confidence': confidence,
+      'transcription': transcription,
+      'source': source,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    print("Detection saved to Firestore");
+  } catch (e) {
+    print("Error saving detection: $e");
   }
-
-  // Get all pending reports
-  Stream<QuerySnapshot> getPendingReports() {
-    return reportsCollection
-        .where('status', isEqualTo: 'pending')
-        .snapshots();
-  }
-
-  // Update report status
-  Future<void> updateReportStatus(String reportId, String status) async {
-    try {
-      await reportsCollection.doc(reportId).update({
-        'status': status,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      print("Report status updated to: $status");
-    } catch (e) {
-      print("Error updating report status: $e");
-    }
-  }
+}
 }

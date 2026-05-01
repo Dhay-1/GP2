@@ -9,9 +9,14 @@ import emoji
 import re
 import io
 from pydub import AudioSegment
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Form
 from transformers import AutoTokenizer, AutoModel, pipeline
 from arabert.preprocess import ArabertPreprocessor
+from pydantic import BaseModel
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # =================
 # 1. INITIALIZATION
@@ -76,7 +81,7 @@ class SequentialHybridModel(nn.Module):
         return prediction
 
 # Processing Tools
-AudioSegment.converter = "C:/Users/Huawei/AppData/Roaming/Python/Python311/site-packages/static_ffmpeg/bin/win32/ffmpeg.exe"
+AudioSegment.converter = "C:/Users/alhus/AppData/Local/Programs/Python/Python311/Lib/site-packages/static_ffmpeg/bin/win32/ffmpeg.exe"
 prep_tool = ArabertPreprocessor(model_name="aubmindlab/bert-base-arabertv2")
 asr_pipe = pipeline(
     "automatic-speech-recognition",
@@ -89,7 +94,7 @@ tokenizer = AutoTokenizer.from_pretrained("aubmindlab/bert-base-arabertv2", resu
 
 # Load model weights
 model = SequentialHybridModel(model_name="aubmindlab/bert-base-arabertv2")
-model.load_state_dict(torch.load("AmanPlay_Model_Weights.pt", map_location=device))
+model.load_state_dict(torch.load("AmanPlaay_Model_Weights.pt", map_location=device))
 model.eval()
 
 # ==========================
@@ -141,15 +146,57 @@ def full_clean(text: str):
 
 
 # =============================
-# 3. API ENDPOINTS (The Action)
+# 3. Email configuration
+# =============================
+   
+SENDER_EMAIL = "amanplay.alert@gmail.com"        
+SENDER_PASSWORD = "wzvd sbzr dfhq uchi"   
+
+def send_email_alert(user_email, transcription, confidence, source):
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "⚠️ تنبيه: تم رصد محتوى تنمر"
+        msg["From"] = f"AmanPlay Alert <{SENDER_EMAIL}>"
+        msg["To"] = user_email
+
+        html = f"""
+        <div style="font-family: Arial; direction: rtl; text-align: right; padding: 20px;">
+            <h2 style="color: #E24B4A;">⚠️ تنبيه من AmanPlay</h2>
+            <p>تم رصد محتوى تنمر في المحتوى الذي ارسله طفلك .</p>
+            <p><strong>المحتوى:</strong> {transcription}</p>
+            <p><strong>المصدر:</strong> {"صوتي " if source == "audio" else "نصي "}</p>
+            <p><strong>نسبة الثقة:</strong> {confidence * 100:.1f}%</p>
+            <hr/>
+            <p style="color: #999; font-size: 12px;">AmanPlay - نظام كشف التنمر</p>
+        </div>
+        """
+        msg.attach(MIMEText(html, "html"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.sendmail(SENDER_EMAIL, user_email, msg.as_string())
+            print(f" Email sent to: {user_email}")
+
+    except Exception as e:
+        print(f"❌ Email error: {e}")
+
+# =============================
+# 4. API ENDPOINTS (The Action)
 # =============================
 
 @app.post("/predict/audio")
-async def predict_audio(file: UploadFile = File(...)):
+async def predict_audio(file: UploadFile = File(...), user_email: str = Form("")):
     text_from_voice = ""
     # Step A: Preprocess & Transcribe the Audio 
     content = await file.read()
+# extra
+    with open("debug_audio.wav", "wb") as f:
+        f.write(content)
+    print(f">>> File size received: {len(content)} bytes")
+    print(f">>> File saved as debug_audio.wav")
+
     text_from_voice = transcribe_audio(content)
+    print(f">>> Whisper transcription: '{text_from_voice}'") 
     
     # Step B: Clean that text 
     cleaned_text = full_clean(text_from_voice)
@@ -160,33 +207,56 @@ async def predict_audio(file: UploadFile = File(...)):
         outputs = model(inputs['input_ids'], inputs['attention_mask'])
         probs = F.softmax(outputs, dim=1)
         confidence = probs[0][1].item()
-    
+
+    # Send email if bullying detected
+    if confidence > 0.5:
+        send_email_alert(
+            user_email=user_email,
+            transcription=text_from_voice,
+            confidence=confidence,
+            source="audio"
+        )
+
     return {
         "is_bullying": confidence > 0.5,
         "confidence": confidence,
-        "transcription": cleaned_text,
+        "transcription": text_from_voice,
         "source": "audio" 
     }
 
-@app.post("/predict/text")
-async def predict_text(text: str):
 
-    cleaned_text = full_clean(text)
+
+class TextRequest(BaseModel):
+    text: str
+    user_email: str = ""
+@app.post("/predict/text")
+async def predict_text(req: TextRequest):  
+    text = req.text
+    cleaned_text = full_clean(req.text)
     inputs = tokenizer(cleaned_text, return_tensors="pt", padding='max_length', truncation=True, max_length=128)
     
     with torch.no_grad():
         outputs = model(inputs['input_ids'], inputs['attention_mask'])
         probs = F.softmax(outputs, dim=1)
         confidence = probs[0][1].item()
-        
+      # Send email if bullying detected
+    if confidence > 0.5:
+        send_email_alert(
+            user_email=req.user_email,
+            transcription=text,
+            confidence=confidence,
+            source="text"
+        )
+
     return {
         "is_bullying": confidence > 0.5,
         "confidence": confidence,
-        "transcription": cleaned_text,
+        "transcription": text,
         "source": "text"
     }
 
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
-    
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+ 
