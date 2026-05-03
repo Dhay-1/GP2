@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:aman_play/screens/sign_up_page.dart';
-import 'package:aman_play/screens/forget_password_page.dart';
+import 'package:aman_play/screens/forget_password.dart';
 import 'package:aman_play/widgets/custom_button.dart';
 import 'package:aman_play/screens/Verification_page.dart';
 import 'package:aman_play/services/auth_service.dart';

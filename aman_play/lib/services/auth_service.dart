@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService extends GetxController {
   static AuthService get instance => Get.find();
@@ -173,6 +174,13 @@ class AuthService extends GetxController {
     try {
       await _auth.currentUser?.reload();
       currentUser.value = _auth.currentUser;
+      if (_auth.currentUser?.emailVerified == true) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_auth.currentUser?.uid)
+          .update({'isVerified': true});
+      print("✅ Firestore isVerified updated to true");
+    }
     } catch (e) {
       errorMessage.value = "خطأ في تحديث الحساب: $e";
     }

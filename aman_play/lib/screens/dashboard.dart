@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'detection.dart';
+import 'profile_page.dart'; 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 void main() {
   runApp(const dashboard());
@@ -30,7 +32,9 @@ class DashboardScreen extends StatefulWidget {
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
+
 }
+
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 2; // Dashboard tab selected by default
@@ -42,6 +46,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 bool _isLoading = true;
 String _userName = "المستخدم";
 
+StreamSubscription? _detectionSubscription;
+
 @override
 void initState() {
   super.initState();
@@ -49,47 +55,68 @@ void initState() {
   _fetchUserName();
 }
 
+@override
+void dispose() {
+  _detectionSubscription?.cancel();
+  super.dispose();
+}
+
 List<String> _getLast7DayLabels() {
   final now = DateTime.now();
   return List.generate(7, (i) {
     final day = now.subtract(Duration(days: 6 - i));
-    const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return names[day.weekday % 7];
+    const names = {
+      1: 'Mon',
+      2: 'Tue',
+      3: 'Wed',
+      4: 'Thu',
+      5: 'Fri',
+      6: 'Sat',
+      7: 'Sun',
+    };
+    return names[day.weekday]!;
   });
 }
 
+
 Future<void> _fetchData() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
   final snapshot = await FirebaseFirestore.instance
       .collection('detections')
       .where('is_bullying', isEqualTo: true)
-      .get();
+      .where('user_email', isEqualTo: user.email)
+      .snapshots().listen((snapshot){
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day); 
+        List<double> audio = [0, 0, 0, 0, 0, 0, 0];
+        List<double> text = [0, 0, 0, 0, 0, 0, 0];
 
-  final now = DateTime.now();
-  List<double> audio = [0, 0, 0, 0, 0, 0, 0];
-  List<double> text = [0, 0, 0, 0, 0, 0, 0];
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          final timestamp = (data['createdAt'] as Timestamp).toDate();
+          final docDay = DateTime(timestamp.year, timestamp.month, timestamp.day); 
+          final diff = today.difference(docDay).inDays; 
 
-  for (var doc in snapshot.docs) {
-    final data = doc.data();
-    final timestamp = (data['createdAt'] as Timestamp).toDate();
-    final diff = now.difference(timestamp).inDays;
-    
-    if (diff < 7) {
-      final index = 6 - diff; // most recent = index 6
-      if (data['source'] == 'audio') {
-        audio[index]++;
-      } else if (data['source'] == 'text') {
-        text[index]++;
+          if (diff < 7) {
+            final index = 6 - diff;
+            if (data['source'] == 'audio') {
+              audio[index]++;
+            } else if (data['source'] == 'text') {
+              text[index]++;
+            }
+          }
+       }
+
+      if (mounted) {
+        setState(() {
+          audioData = audio;
+          writingData = text;
+          _isLoading = false;
+        });
       }
-    }
-  }
-
-if (mounted) {
-    setState(() {
-      audioData = audio;
-      writingData = text;
-      _isLoading = false;
-    });
-  }
+   });
 }
 
 Future<void> _fetchUserName() async {
@@ -114,23 +141,21 @@ Future<void> _fetchUserName() async {
 
             // Scrollable content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Column(
-                  children: [
-                    _buildChartCard(
-                      title: 'الاحصائيات الصوتية',
-                      data: audioData,
+              child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF00A896)),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Column(
+                      children: [
+                        _buildChartCard(title: 'الاحصائيات الصوتية', data: audioData),
+                        const SizedBox(height: 16),
+                        _buildChartCard(title: 'الاحصائيات الكتابية', data: writingData),
+                        const SizedBox(height: 16),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    _buildChartCard(
-                      title: 'الاحصائيات الكتابية',
-                      data: writingData,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
+                  ),
             ),
           ],
         ),
@@ -248,41 +273,23 @@ Future<void> _fetchUserName() async {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Title row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Edit button (left side in RTL = left)
-              GestureDetector(
-                onTap: () {},
-                child: const Text(
-                  'تعديل',
-                  style: TextStyle(
-                    color: Color(0xFF00A896),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              // Title
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF222222),
-                ),
-              ),
-            ],
+          Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF222222),
+            ),
           ),
-
+        ),
           const SizedBox(height: 4),
-
           // Subtitle
           const Align(
             alignment: Alignment.centerRight,
             child: Text(
-              'نسب النشر المرصودة خلال الأسبوع',
+              'نسب التنمر المرصودة خلال الأسبوع',
               style: TextStyle(
                 fontSize: 11,
                 color: Color(0xFF999999),
@@ -397,7 +404,13 @@ Future<void> _fetchUserName() async {
           );
           // Reset to dashboard tab when returning
           setState(() => _selectedIndex = 2);
-        } else {
+        } else if (index == 0) {
+            await Navigator.push(
+            context,
+             MaterialPageRoute(builder: (context) => const ProfilePage()),
+        );
+        setState(() => _selectedIndex = 2);
+      } else {
           setState(() => _selectedIndex = index);
         }
       },

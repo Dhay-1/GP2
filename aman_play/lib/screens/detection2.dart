@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:record/record.dart'; 
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
+import 'dart:async';
 
 
 class Detection2Screen extends StatefulWidget {
@@ -19,64 +20,71 @@ class _Detection2ScreenState extends State<Detection2Screen> {
   final TextEditingController _textController = TextEditingController();
   AudioRecorder? _audioRecorder;
   
-  
   final String _baseUrl = "http://192.168.0.174:8000"; 
-  final String _userEmail =  FirebaseAuth.instance.currentUser?.email ?? ""; // Get users email from the Firebase Auth
+  final String _userEmail =  FirebaseAuth.instance.currentUser?.email ?? "";
+  Timer? _chunkTimer;
+  int _chunkIndex = 0;
 
   // --- AUDIO LOGIC ---
- void _toggleRecording() async {
+  void _toggleRecording() async {
   if (_isRecording) {
-    // STOP
-    final path = await _audioRecorder?.stop();
-    await _audioRecorder?.dispose();
-    _audioRecorder = null;  // clean up
+    // user manually stopped
+    _chunkTimer?.cancel();
+    _chunkTimer = null;
+    await _stopAndSendChunk(isFinal: true);
     setState(() => _isRecording = false);
-
-    if (path != null) {
-      _showLoadingDialog("جاري تحليل الصوت...");
-      await _sendAudioToAI(path);
-    }
   } else {
-    // create a fresh recorder
+    // START
     _audioRecorder = AudioRecorder();
-    
-    
-    final hasPermission = await _audioRecorder!.hasPermission();
-    print(">>> Microphone permission: $hasPermission");  
-    
-    if (hasPermission) {
-      final directory = await getTemporaryDirectory();
-      final path = '${directory.path}/recording.wav';
-      print(">>> Saving to: $path");  
-      
-      await _audioRecorder!.start(
-        const RecordConfig(
-          encoder: AudioEncoder.wav,
-          sampleRate: 16000,
-          numChannels: 1,
-        ),
-        path: path,
-      );
+    if (await _audioRecorder!.hasPermission()) {
+      _chunkIndex = 0;
       setState(() => _isRecording = true);
-    } else {
-      print(">>> NO MICROPHONE PERMISSION!");
+      await _startNewChunk();
+      // Send audio Every 10 minutes, auto send and restart
+      _chunkTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+        await _stopAndSendChunk(isFinal: false);
+        await _startNewChunk();
+      });
     }
   }
 }
-Future<void> _sendAudioToAI(String filePath) async {
+   Future<void> _startNewChunk() async {
+  _audioRecorder ??= AudioRecorder();
+  final directory = await getTemporaryDirectory();
+  final path = '${directory.path}/chunk_$_chunkIndex.wav';
+  _chunkIndex++;
+  await _audioRecorder!.start(
+    const RecordConfig(
+      encoder: AudioEncoder.wav,
+      sampleRate: 16000,
+      numChannels: 1,
+    ),
+    path: path,
+  );
+  print(">>> Started chunk $_chunkIndex at $path");
+}
+Future<void> _stopAndSendChunk({required bool isFinal}) async {
+  final path = await _audioRecorder?.stop();
+  await _audioRecorder?.dispose();
+  _audioRecorder = null;
+  if (path != null) {
+    print(">>> Sending chunk $_chunkIndex to AI...");
+    if (isFinal) {
+      _showLoadingDialog("جاري تحليل الصوت...");
+    }
+    await _sendAudioToAman(path, showDialog: isFinal);
+  }
+}
+Future<void> _sendAudioToAman(String filePath, {bool showDialog = true}) async {
   var request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/predict/audio'));
   request.files.add(await http.MultipartFile.fromPath('file', filePath));
   request.fields['user_email'] = _userEmail;
-
   var response = await request.send();
-  
   if (response.statusCode == 200) {
-    // ✅ Read stream only once
     final responseBody = await response.stream.bytesToString();
     var data = jsonDecode(responseBody);
-
-    // Save to Firestore only if bullying detected
     if (data['is_bullying'] == true) {
+      // Save to Firestore
       await FirestoreService.instance.saveDetectionResult(
         userEmail: _userEmail,
         isBullying: data['is_bullying'],
@@ -84,58 +92,66 @@ Future<void> _sendAudioToAI(String filePath) async {
         transcription: data['transcription'],
         source: "audio",
       );
+      if (mounted) {
+        _showResultDialog("Bullying", data['transcription']);
+      }
+    } else {  
+      if (showDialog && mounted) {
+        if (mounted) Navigator.pop(context);
+        _showResultDialog("Not Bullying", data['transcription']);
+      }
     }
-
-    if (mounted) Navigator.pop(context); // close loading dialog
-
-    _showResultDialog(
-      data['is_bullying'] == true ? "Bullying" : "Not Bullying",
-      data['transcription'],
-    );
   } else {
-    if (mounted) Navigator.pop(context);
-    _showResultDialog("خطأ", "فشل الاتصال بالخادم");
+    if (showDialog && mounted) {
+      if (mounted) Navigator.pop(context);
+      _showResultDialog("خطأ", "فشل الاتصال بالخادم");
+    }
   }
 }
+
   // --- TEXT LOGIC ---
  Future<void> _analyzeText() async {
   String text = _textController.text.trim();
   if (text.isEmpty) return;
-
   _showLoadingDialog("جاري تحليل النص...");
-
- Navigator.pop(context); 
-final response = await http.post(
-  Uri.parse('$_baseUrl/predict/text'),
-  headers: {
-    "Content-Type": "application/json; charset=UTF-8",
-    "Accept": "application/json",
-  },
-  body: jsonEncode({'text': text, 'user_email': _userEmail}),
-);
-if (response.statusCode == 200) {
-  var data = jsonDecode(response.body);
-  _showResultDialog(
-    data['is_bullying'] ? "Bullying" : "Not Bullying",
-    data['transcription'],
-  );
-/// if bullying is detected will save the result to fire base 
- if (data['is_bullying'] == true) {
-    await FirestoreService.instance.saveDetectionResult(
-      userEmail: _userEmail,
-      isBullying: data['is_bullying'],
-      confidence: data['confidence'],
-      transcription: data['transcription'],
-      source: "text",
+ try {
+    // 4. Send the text to AmanPlay server for analysis
+    final response = await http.post(
+      Uri.parse('$_baseUrl/predict/text'),
+      headers: {
+        "Content-Type": "application/json; charset=UTF-8",
+        "Accept": "application/json",
+      },
+      body: jsonEncode({
+        'text': text,
+        'user_email': _userEmail,
+      }),
     );
- if (mounted) Navigator.pop(context);
-
-  _showResultDialog(
-    data['is_bullying'] == true ? "Bullying" : "Not Bullying",
-    data['transcription'],
-  );
-}
- } 
+    if (mounted) Navigator.pop(context);
+    // 6. If AmanPlayserver responded successfully
+    if (response.statusCode == 200) {
+      var data = jsonDecode(response.body);
+      // 7. If bullying was detected The details wiil be saved to Firestore
+      if (data['is_bullying'] == true) {
+        await FirestoreService.instance.saveDetectionResult(
+          userEmail: _userEmail,
+          isBullying: data['is_bullying'],
+          confidence: data['confidence'],
+          transcription: data['transcription'],
+          source: "text",
+        );
+      }
+      // 8. Show result to user (bullying or not)
+      _showResultDialog(
+        data['is_bullying'] == true ? "Bullying" : "Not Bullying",
+        data['transcription'],
+      );
+    }
+  } catch (e) {
+    if (mounted) Navigator.pop(context);
+    _showResultDialog("خطأ", "فشل الاتصال بالخادم");
+    print("Error: $e");
+  }
  }
   void _showLoadingDialog(String message) {
     showDialog(
@@ -171,6 +187,7 @@ if (response.statusCode == 200) {
 
  @override
 void dispose() {
+  _chunkTimer?.cancel(); 
   _textController.dispose();
   _audioRecorder?.dispose();  
   super.dispose();
